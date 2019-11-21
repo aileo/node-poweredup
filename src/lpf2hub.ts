@@ -707,8 +707,20 @@ export class LPF2Hub extends Hub {
             }
 
             case Consts.MotorModes.POS: {
-                values.push(data.readUInt32BE(4));
+                values.push(data.readInt32BE(4));
                 event = 'rotate';
+                break;
+            }
+
+            case Consts.MotorModes.APOS: {
+                values.push(data.readInt16BE(4));
+                event = 'absoluteRotate';
+                break;
+            }
+
+            case Consts.MotorModes.LOAD: {
+                values.push(data.readInt8(4));
+                event = 'load';
                 break;
             }
         }

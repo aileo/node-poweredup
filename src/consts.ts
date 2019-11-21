@@ -215,5 +215,7 @@ export enum TiltModes {
 export enum MotorModes {
     POWER = 0,
     SPEED = 1,
-    POS = 2
+    POS = 2,
+    APOS = 3,
+    LOAD = 4
 }
