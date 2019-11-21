@@ -481,10 +481,19 @@ export class LPF2Hub extends Hub {
                     this.emit("accel", "ACCEL", accelX, accelY, accelZ);
                     break;
                 }
+                case Consts.DeviceType.CONTROL_PLUS_TILT: {
+                    const tiltZ = data.readInt16LE(4);
+                    const tiltY = data.readInt16LE(6);
+                    const tiltX = data.readInt16LE(8);
+                    this._lastTiltX = tiltX;
+                    this._lastTiltY = tiltY;
+                    this._lastTiltZ = tiltZ;
+                    this.emit("tilt", "TILT", this._lastTiltX, this._lastTiltY, this._lastTiltZ);
+                    break;
+                }
                 case Consts.DeviceType.WEDO2_TILT:
-                case Consts.DeviceType.CONTROL_PLUS_TILT:
                 case Consts.DeviceType.BOOST_TILT: {
-                    this._parseTilt(port, data);
+                    this._parseBoostTilt(port, data);
                     break;
                 }
                 case Consts.DeviceType.POWERED_UP_REMOTE_BUTTON: {
@@ -630,7 +639,7 @@ export class LPF2Hub extends Hub {
         }
     }
 
-    private _parseTilt(port: Port, data: Buffer) {
+    private _parseBoostTilt(port: Port, data: Buffer) {
         const values: number[] = [];
         let event = '';
 
@@ -705,6 +714,5 @@ export class LPF2Hub extends Hub {
         }
 
         this.emit(event, port.id, ...values);
-
     }
 }
