@@ -186,3 +186,17 @@ export enum BLECharacteristic {
     WEDO2_NAME_ID = "00001524-1212-efde-1523-785feabcd123", // "1524"
     LPF2_ALL = "00001624-1212-efde-1623-785feabcd123"
 }
+
+export enum ColorAndDistanceModes {
+    COLOR = 0x00,
+    PROX = 0x01,
+    COUNT = 0x02,
+    REFLT = 0x03,
+    AMBI = 0x04,
+    COL_O = 0x05,
+    RGB_I = 0x06,
+    IR_Tx = 0x07,
+    SPEC_1 = 0x08,
+    DEBUG = 0x09,
+    CALIB = 0x0a
+}

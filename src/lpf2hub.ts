@@ -4,7 +4,7 @@ import { Hub } from "./hub";
 import { Port } from "./port";
 
 import * as Consts from "./consts";
-import { toBin, toHex } from "./utils";
+import { toBin, toDistance, toHex } from "./utils";
 
 import Debug = require("debug");
 const debug = Debug("lpf2hub");
@@ -456,38 +456,7 @@ export class LPF2Hub extends Hub {
                     break;
                 }
                 case Consts.DeviceType.BOOST_DISTANCE: {
-
-                    /**
-                     * Emits when a color sensor is activated.
-                     * @event LPF2Hub#color
-                     * @param {string} port
-                     * @param {Color} color
-                     */
-                    if (data[4] <= 10) {
-                        this.emit("color", port.id, data[4]);
-                    }
-
-                    let distance = data[5];
-                    const partial = data[7];
-
-                    if (partial > 0) {
-                        distance += 1.0 / partial;
-                    }
-
-                    distance = Math.floor(distance * 25.4) - 20;
-
-                    this.emit("distance", port.id, distance);
-
-                    /**
-                     * A combined color and distance event, emits when the sensor is activated.
-                     * @event LPF2Hub#colorAndDistance
-                     * @param {string} port
-                     * @param {Color} color
-                     * @param {number} distance Distance, in millimeters.
-                     */
-                    if (data[4] <= 10) {
-                        this.emit("colorAndDistance", port.id, data[4], distance);
-                    }
+                    this._parseBoostColorAndDistance(port, data);
                     break;
                 }
                 case Consts.DeviceType.WEDO2_TILT: {
@@ -608,5 +577,103 @@ export class LPF2Hub extends Hub {
 
     }
 
+    private _parseBoostColorAndDistance(port: Port, data: Buffer) {
+        const commons: { [dataType: string]: number } = {};
 
+        switch (port.mode) {
+            case Consts.ColorAndDistanceModes.COLOR: {
+                commons.color = 4;
+                break;
+            }
+
+            case Consts.ColorAndDistanceModes.PROX: {
+                commons.distance = 4;
+                break;
+            }
+
+            case Consts.ColorAndDistanceModes.SPEC_1: {
+                commons.color = 4;
+                commons.distance = 5;
+                commons.partial = 7;
+                break;
+            }
+        }
+
+        const color = commons.color !== undefined ? data[commons.color] : undefined;
+        const partial = commons.partial !== undefined ? data[commons.partial] : undefined;
+        const distance = commons.distance !== undefined ? toDistance(data[commons.distance], partial) : undefined;
+
+        if (color !== undefined) {
+            /**
+             * Emits when a color sensor is activated.
+             * @event LPF2Hub#color
+             * @param {string} port
+             * @param {Color} color
+             */
+            this.emit("color", port.id, color);
+        }
+
+        if (distance !== undefined) {
+            /**
+             * Emits when a distance sensor is activated.
+             * @event LPF2Hub#distance
+             * @param {string} port
+             * @param {number} distance Distance, in millimeters.
+             */
+            this.emit("distance", port.id, distance);
+        }
+
+        if (color !== undefined && distance !== undefined) {
+            /**
+             * A combined color and distance event, emits when the sensor is activated.
+             * @event LPF2Hub#colorAndDistance
+             * @param {string} port
+             * @param {Color} color
+             * @param {number} distance Distance, in millimeters.
+             */
+            this.emit("colorAndDistance", port.id, color, distance);
+        }
+
+        if (port.mode === Consts.ColorAndDistanceModes.COUNT) {
+            /**
+             * Emits when a count mode distance sensor is activated.
+             * @event LPF2Hub#count
+             * @param {string} port
+             * @param {number} count
+             */
+            this.emit("count", port.id, data[4]);
+        }
+
+        if (port.mode === Consts.ColorAndDistanceModes.REFLT) {
+            /**
+             * Emits when a reflect mode color sensor is activated.
+             * @event LPF2Hub#reflectivity
+             * @param {string} port
+             * @param {number} reflectivity
+             */
+            this.emit("reflectivity", port.id, data[4]);
+        }
+
+        if (port.mode === Consts.ColorAndDistanceModes.AMBI) {
+            /**
+             * Emits when a ambiant mode color sensor is activated.
+             * @event LPF2Hub#luminosity
+             * @param {string} port
+             * @param {number} luminosity
+             */
+            this.emit("luminosity", port.id, data[4]);
+        }
+
+        if (port.mode === Consts.ColorAndDistanceModes.RGB_I) {
+            /**
+             * Emits when a RGB mode color sensor is activated.
+             * @event LPF2Hub#rgb
+             * @param {string} port
+             * @param {number} r
+             * @param {number} g
+             * @param {number} b
+             */
+            this.emit("rgb", port.id, data[4], data[6], data[8]);
+        }
+    }
 }
