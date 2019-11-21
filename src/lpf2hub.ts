@@ -459,56 +459,11 @@ export class LPF2Hub extends Hub {
                     this._parseBoostColorAndDistance(port, data);
                     break;
                 }
-                case Consts.DeviceType.WEDO2_TILT: {
-                    const tiltX = data.readInt8(4);
-                    const tiltY = data.readInt8(5);
-                    this._lastTiltX = tiltX;
-                    this._lastTiltY = tiltY;
-                    /**
-                     * Emits when a tilt sensor is activated.
-                     * @event LPF2Hub#tilt
-                     * @param {string} port If the event is fired from the Move Hub or Control+ Hub's in-built tilt sensor, the special port "TILT" is used.
-                     * @param {number} x
-                     * @param {number} y
-                     * @param {number} z (Only available when using a Control+ Hub)
-                     */
-                    this.emit("tilt", port.id, this._lastTiltX, this._lastTiltY, this._lastTiltZ);
-                    break;
-                }
-                case Consts.DeviceType.BOOST_TACHO_MOTOR: {
-                    const rotation = data.readInt32LE(4);
-                    /**
-                     * Emits when a rotation sensor is activated.
-                     * @event LPF2Hub#rotate
-                     * @param {string} port
-                     * @param {number} rotation
-                     */
-                    this.emit("rotate", port.id, rotation);
-                    break;
-                }
-                case Consts.DeviceType.BOOST_MOVE_HUB_MOTOR: {
-                    const rotation = data.readInt32LE(4);
-                    this.emit("rotate", port.id, rotation);
-                    break;
-                }
-                case Consts.DeviceType.CONTROL_PLUS_LARGE_MOTOR: {
-                    const rotation = data.readInt32LE(4);
-                    this.emit("rotate", port.id, rotation);
-                    break;
-                }
+                case Consts.DeviceType.BOOST_TACHO_MOTOR:
+                case Consts.DeviceType.BOOST_MOVE_HUB_MOTOR:
+                case Consts.DeviceType.CONTROL_PLUS_LARGE_MOTOR:
                 case Consts.DeviceType.CONTROL_PLUS_XLARGE_MOTOR: {
-                    const rotation = data.readInt32LE(4);
-                    this.emit("rotate", port.id, rotation);
-                    break;
-                }
-                case Consts.DeviceType.CONTROL_PLUS_TILT: {
-                    const tiltZ = data.readInt16LE(4);
-                    const tiltY = data.readInt16LE(6);
-                    const tiltX = data.readInt16LE(8);
-                    this._lastTiltX = tiltX;
-                    this._lastTiltY = tiltY;
-                    this._lastTiltZ = tiltZ;
-                    this.emit("tilt", "TILT", this._lastTiltX, this._lastTiltY, this._lastTiltZ);
+                    this._parseMotor(port, data);
                     break;
                 }
                 case Consts.DeviceType.CONTROL_PLUS_ACCELEROMETER: {
@@ -526,12 +481,10 @@ export class LPF2Hub extends Hub {
                     this.emit("accel", "ACCEL", accelX, accelY, accelZ);
                     break;
                 }
+                case Consts.DeviceType.WEDO2_TILT:
+                case Consts.DeviceType.CONTROL_PLUS_TILT:
                 case Consts.DeviceType.BOOST_TILT: {
-                    const tiltX = data.readInt8(4);
-                    const tiltY = data.readInt8(5);
-                    this._lastTiltX = tiltX;
-                    this._lastTiltY = tiltY;
-                    this.emit("tilt", port.id, this._lastTiltX, this._lastTiltY, this._lastTiltZ);
+                    this._parseTilt(port, data);
                     break;
                 }
                 case Consts.DeviceType.POWERED_UP_REMOTE_BUTTON: {
@@ -675,5 +628,83 @@ export class LPF2Hub extends Hub {
              */
             this.emit("rgb", port.id, data[4], data[6], data[8]);
         }
+    }
+
+    private _parseTilt(port: Port, data: Buffer) {
+        const values: number[] = [];
+        let event = '';
+
+        switch (port.mode) {
+            case Consts.TiltModes.ANGLE: {
+                values.push(data.readInt8(4));
+                values.push(data.readInt8(5));
+                event = 'angle';
+                break;
+            }
+
+            case Consts.TiltModes.TILT: {
+                values.push(data[4]);
+                event = 'tilt';
+                break;
+            }
+
+            case Consts.TiltModes.ORINT: {
+                values.push(data[4]);
+                event = 'orientation';
+                break;
+            }
+
+            case Consts.TiltModes.IMPCT: {
+                values.push(data.readUInt32BE(4));
+                event = 'impact';
+                break;
+            }
+
+            case Consts.TiltModes.ACCEL: {
+                /**
+                 * Emits when a tilt sensor is activated.
+                 * @event LPF2Hub#tilt
+                 * @param {string} port If the event is fired from the Move Hub or Control+ Hub's in-built tilt sensor, the special port "TILT" is used.
+                 * @param {number} x
+                 * @param {number} y
+                 * @param {number} z
+                 */
+                values.push(data.readInt8(4));
+                values.push(data.readInt8(5));
+                values.push(data.readInt8(6));
+                event = 'accel';
+                break;
+            }
+        }
+
+        this.emit(event, port.id, ...values);
+    }
+
+    private _parseMotor(port: Port, data: Buffer) {
+        const values: number[] = [];
+        let event = '';
+
+        switch (port.mode) {
+            case Consts.MotorModes.POWER: {
+                values.push(data.readInt8(4));
+                event = 'power';
+                break;
+            }
+
+            case Consts.MotorModes.SPEED: {
+                values.push(data.readInt8(4));
+                event = 'speed';
+                break;
+            }
+
+            case Consts.MotorModes.POS: {
+                values.push(data.readUInt32BE(4));
+                event = 'rotate';
+                break;
+            }
+        }
+
+        this.emit(event, port.id, ...values);
+
     }
 }

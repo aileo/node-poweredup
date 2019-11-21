@@ -200,3 +200,20 @@ export enum ColorAndDistanceModes {
     DEBUG = 0x09,
     CALIB = 0x0a
 }
+
+export enum TiltModes {
+    ANGLE = 0,
+    TILT = 1,
+    ORINT = 2,
+    IMPCT = 3,
+    ACCEL = 4,
+    OR_CF = 5,
+    IM_CF = 6,
+    CALIB = 7
+}
+
+export enum MotorModes {
+    POWER = 0,
+    SPEED = 1,
+    POS = 2
+}
